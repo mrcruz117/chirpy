@@ -1,12 +1,5 @@
 package main
 
-// server init
-/*
-Create a new http.ServeMux
-Create a new http.Server struct and use the new "ServeMux" as the server's handler
-Use the server's ListenAndServe method to start the server
-*/
-
 import (
 	"fmt"
 	"net/http"
