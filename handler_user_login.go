@@ -3,14 +3,11 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/mrcruz117/chirpy/internal/database"
 )
 
-type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-}
-
-func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	type parameters struct {
 		Email    string `json:"email"`
@@ -25,13 +22,16 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, err := cfg.DB.CreateUser(params.Email, params.Password)
+	user, err := cfg.DB.UserAuth(database.User{
+		Email:    params.Email,
+		Password: params.Password,
+	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user")
+		respondWithError(w, http.StatusUnauthorized, "Not Authorized")
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, User{
+	respondWithJSON(w, http.StatusOK, User{
 		ID:    user.ID,
 		Email: user.Email,
 	})
