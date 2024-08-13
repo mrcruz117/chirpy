@@ -65,6 +65,19 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 
 	return chirps, nil
 }
+func (db *DB) GetChirp(id int) (Chirp, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+
+	chirp, exists := dbStructure.Chirps[id]
+	if !exists {
+		return Chirp{}, errors.New("chirp not found")
+	}
+
+	return chirp, nil
+}
 
 func (db *DB) createDB() error {
 	dbStructure := DBStructure{
