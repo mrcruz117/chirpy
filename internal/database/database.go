@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+var ErrNotExist = errors.New("resource does not exist")
+
 type DB struct {
 	path string
 	mu   *sync.RWMutex
@@ -71,9 +73,9 @@ func (db *DB) GetChirp(id int) (Chirp, error) {
 		return Chirp{}, err
 	}
 
-	chirp, exists := dbStructure.Chirps[id]
-	if !exists {
-		return Chirp{}, errors.New("chirp not found")
+	chirp, ok := dbStructure.Chirps[id]
+	if !ok {
+		return Chirp{}, ErrNotExist
 	}
 
 	return chirp, nil
