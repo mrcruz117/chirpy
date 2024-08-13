@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 )
 
 type apiConfig struct {
-	mu             sync.Mutex
 	fileserverHits int
 }
 
