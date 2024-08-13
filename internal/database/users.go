@@ -1,29 +1,31 @@
 package database
 
-import (
-	"golang.org/x/crypto/bcrypt"
-)
+import "errors"
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID             int    `json:"id"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	HashedPassword string `json:"hashed_password"`
 }
 
-func (db *DB) CreateUser(email string, password string) (User, error) {
+var ErrAlreadyExists = errors.New("already exists")
+
+func (db *DB) CreateUser(email, hashedPassword string) (User, error) {
+	if _, err := db.GetUserByEmail(email); !errors.Is(err, ErrNotExist) {
+		return User{}, ErrAlreadyExists
+	}
+
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return User{}, err
-	}
+
 	id := len(dbStructure.Users) + 1
 	user := User{
-		ID:       id,
-		Email:    email,
-		Password: string(hashedPassword),
+		ID:             id,
+		Email:          email,
+		HashedPassword: hashedPassword,
 	}
 	dbStructure.Users[id] = user
 
@@ -49,20 +51,15 @@ func (db *DB) GetUser(id int) (User, error) {
 	return user, nil
 }
 
-func (db *DB) UserAuth(user User) (User, error) {
+func (db *DB) GetUserByEmail(email string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
 	}
 
-	for _, u := range dbStructure.Users {
-		if u.Email == user.Email {
-			// Compare the hashed password with the provided password
-			err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
-			if err != nil {
-				return User{}, bcrypt.ErrMismatchedHashAndPassword
-			}
-			return u, nil
+	for _, user := range dbStructure.Users {
+		if user.Email == email {
+			return user, nil
 		}
 	}
 
