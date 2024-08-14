@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	// "path/filepath"
-
 	// "github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"github.com/mrcruz117/chirpy/internal/database"
@@ -19,16 +17,12 @@ type apiConfig struct {
 }
 
 func main() {
-	// wd, wdErr := os.Getwd()
-	// if wdErr != nil {
-	// 	log.Fatalf("Error getting executable path: %v", wdErr)
-	// }
 
-	// exPath := filepath.Dir(wd)
-	// envPath := filepath.Join(exPath, "chirpy/.env")
+	err := godotenv.Load(".env")
 
-	godotenv.Load(".env")
-
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is not set")
