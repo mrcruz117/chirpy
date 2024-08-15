@@ -6,7 +6,7 @@ import (
 	// "github.com/mrcruz117/chirpy/internal/database"
 )
 
-func (cfg *apiConfig) handlerPolkaWebhookPost(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Event string `json:"event"`
 		Data  struct {
@@ -32,7 +32,7 @@ func (cfg *apiConfig) handlerPolkaWebhookPost(w http.ResponseWriter, r *http.Req
 		return
 	}
 	user.IsChirpyRed = true
-	_, err = cfg.DB.UpdateUser(user.ID, user.Email, user.HashedPassword, true)
+	_, err = cfg.DB.UpgradeChirpyRed(params.Data.UserID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update user")
 		return
