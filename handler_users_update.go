@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mrcruz117/chirpy/internal/auth"
+	"github.com/mrcruz117/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +15,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		Email    string `json:"email"`
 	}
 	type response struct {
-		User
+		database.User
 	}
 
 	token, err := auth.GetBearerToken(r.Header)
@@ -55,7 +56,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	respondWithJSON(w, http.StatusOK, response{
-		User: User{
+		User: database.User{
 			ID:    user.ID,
 			Email: user.Email,
 		},

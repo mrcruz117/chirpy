@@ -9,11 +9,6 @@ import (
 	"github.com/mrcruz117/chirpy/internal/database"
 )
 
-type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-}
-
 func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
