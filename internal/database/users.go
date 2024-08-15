@@ -15,6 +15,7 @@ type User struct {
 }
 
 var ErrAlreadyExists = errors.New("already exists")
+var ErrInvalidToken = errors.New("invalid token")
 
 func (db *DB) CreateUser(email, hashedPassword string) (User, error) {
 	if _, err := db.GetUserByEmail(email); !errors.Is(err, ErrNotExist) {
