@@ -10,6 +10,10 @@ import (
 
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
 	authorIDStr := r.URL.Query().Get("author_id")
+	sortStr := r.URL.Query().Get("sort")
+	if sortStr == "" {
+		sortStr = "asc"
+	}
 	var dbChirps []database.Chirp
 	var err error
 
@@ -37,9 +41,18 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 		})
 	}
 
-	sort.Slice(chirps, func(i, j int) bool {
-		return chirps[i].ID < chirps[j].ID
-	})
+	if sortStr == "asc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].ID < chirps[j].ID
+		})
+	} else if sortStr == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].ID > chirps[j].ID
+		})
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Invalid sort value")
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, chirps)
 }
