@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/mrcruz117/chirpy/internal/auth"
 	// "github.com/mrcruz117/chirpy/internal/database"
 )
 
@@ -19,6 +21,12 @@ func (cfg *apiConfig) handlerWebhook(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
+		return
+	}
+
+	apiKeyErr := auth.GetApiKey(r.Header)
+	if apiKeyErr != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find API key")
 		return
 	}
 
