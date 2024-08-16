@@ -4,10 +4,26 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/mrcruz117/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.DB.GetChirps()
+	authorIDStr := r.URL.Query().Get("author_id")
+	var dbChirps []database.Chirp
+	var err error
+
+	if authorIDStr != "" {
+		authorID, err := strconv.Atoi(authorIDStr)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author_id")
+			return
+		}
+		dbChirps, _ = cfg.DB.GetChirpsByAuthorID(authorID)
+	} else {
+		dbChirps, err = cfg.DB.GetChirps()
+	}
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
 		return
