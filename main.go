@@ -32,6 +32,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	fileServer := http.FileServer(http.Dir(filepathRoot))
+	mux.Handle("/", fileServer)
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,
@@ -39,7 +42,5 @@ func main() {
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
-
-	// always returns a 404
 
 }
