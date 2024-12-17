@@ -1,18 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 
 	// "github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
-	fileserverHits int
-	// DB             *database.DB
-	jwtSecret string
-	polkaKey  string
+	fileserverHits atomic.Int32
+	jwtSecret      string
+	polkaKey       string
 }
 
 func main() {
@@ -32,10 +33,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// keep pointer or not?
+	apiCfg := &apiConfig{}
 	fileServer := http.FileServer(http.Dir(filepathRoot))
-	mux.Handle("/app/", http.StripPrefix("/app", fileServer))
-
-	mux.HandleFunc("/healthz", healthzHandler)
+	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer)))
+	mux.HandleFunc("/healthz", handlerReadiness)
+	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("/reset", apiCfg.handlerReset)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -47,8 +51,15 @@ func main() {
 
 }
 
-func healthzHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
+}
+
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cfg.fileserverHits.Add(1)
+		next.ServeHTTP(w, r)
+	})
 }
