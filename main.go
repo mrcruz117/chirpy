@@ -1,39 +1,47 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/mrcruz117/chirpy/internal/database"
 
 	// "github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	jwtSecret      string
-	polkaKey       string
+	// jwtSecret      string
+	// polkaKey       string
+	db *database.Queries
 }
 
 func main() {
-
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	// jwtSecret := os.Getenv("JWT_SECRET")
-	// polkaKey := os.Getenv("POLKA_KEY")
-	// if jwtSecret == "" {
-	// 	log.Fatal("JWT_SECRET environment variable is not set")
-	// }
 	const filepathRoot = "."
 	const port = "8080"
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
+
+	dbConn, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Error opening database: %s", err)
+	}
+	dbQueries := database.New(dbConn)
+
+	apiCfg := apiConfig{
+		fileserverHits: atomic.Int32{},
+		db:             dbQueries,
+	}
 
 	mux := http.NewServeMux()
-
-	// keep pointer or not?
-	apiCfg := &apiConfig{}
 	fileServer := http.FileServer(http.Dir(filepathRoot))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer)))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
