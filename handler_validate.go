@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+var badWords = map[string]struct{}{
+	"kerfuffle": {},
+	"sharbert":  {},
+	"fornax":    {},
+}
+
 func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
@@ -28,11 +34,6 @@ func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	badWords := map[string]struct{}{
-		"kerfuffle": {},
-		"sharbert":  {},
-		"fornax":    {},
-	}
 	cleaned := getCleanedBody(params.Body, badWords)
 
 	respondWithJSON(w, http.StatusOK, returnVals{
