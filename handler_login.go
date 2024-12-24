@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/mrcruz117/chirpy/internal/auth"
+	"github.com/mrcruz117/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds int    `json:"expires_in_seconds,omitempty"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	type response struct {
 		User
-		Token string `json:"token"`
+		Token        string `json:"token"`         // access token
+		RefreshToken string `json:"refresh_token"` // refresh token
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -41,14 +42,29 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Default expiration is 1 hour
 	expiresIn := time.Hour
-	if params.ExpiresInSeconds > 0 {
-		// If client specified expiration, use it (but cap at 1 hour)
-		expiresIn = time.Duration(min(params.ExpiresInSeconds, 3600)) * time.Second
+
+	// Generate access token
+	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expiresIn)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create access token", err)
+		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expiresIn)
+	// Generate refresh token
+	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create token", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create refresh token", err)
+		return
+	}
+
+	// Store refresh token in database
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't store refresh token", err)
 		return
 	}
 
@@ -59,6 +75,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: token,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	})
 }
