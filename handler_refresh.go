@@ -14,14 +14,12 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate token from database
 	dbToken, err := cfg.db.GetUserFromRefreshToken(r.Context(), refreshToken)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid refresh token", err)
 		return
 	}
 
-	// Generate new access token
 	accessToken, err := auth.MakeJWT(dbToken.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create access token", err)
