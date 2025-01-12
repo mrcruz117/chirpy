@@ -12,11 +12,12 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"`
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	Password    string    `json:"-"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
@@ -53,10 +54,11 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusCreated, response{
 		User: User{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
+			ID:          user.ID,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
 }
@@ -107,10 +109,47 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
+			ID:          user.ID,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
+}
+
+func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserID string `json:"user_id"`
+		} `json:"data"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	if params.Event != "user.upgraded" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	userID, err := uuid.Parse(params.Data.UserID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
+		return
+	}
+
+	_, err = cfg.db.UpgradeUser(r.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "User not found", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
