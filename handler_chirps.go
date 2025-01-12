@@ -104,6 +104,8 @@ func getCleanedBody(body string, badWords map[string]struct{}) string {
 
 func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 	authorID := r.URL.Query().Get("author_id")
+	sort := r.URL.Query().Get("sort")
+
 	if authorID != "" {
 		dbChirps, err := cfg.db.GetChirpsByAuthorID(r.Context(), uuid.MustParse(authorID))
 		if err != nil {
@@ -114,7 +116,15 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbChirps, err := cfg.db.GetChirps(r.Context())
+	dbChirps := []database.Chirp{}
+	var err error
+
+	if sort == "asc" {
+		dbChirps, err = cfg.db.GetChirpsAsc(r.Context())
+	} else {
+		dbChirps, err = cfg.db.GetChirpsDesc(r.Context())
+	}
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
 		return
