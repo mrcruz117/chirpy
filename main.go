@@ -17,9 +17,9 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	jwtSecret      string
-	// polkaKey       string
-	platform string
-	db       *database.Queries
+	polkaKey       string
+	platform       string
+	db             *database.Queries
 }
 
 func main() {
@@ -38,6 +38,10 @@ func main() {
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET must be set")
 	}
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY must be set")
+	}
 
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -50,6 +54,7 @@ func main() {
 		db:             dbQueries,
 		platform:       platform,
 		jwtSecret:      jwtSecret,
+		polkaKey:       polkaKey,
 	}
 
 	mux := http.NewServeMux()
