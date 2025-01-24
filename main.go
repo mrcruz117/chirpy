@@ -9,7 +9,6 @@ import (
 
 	"github.com/mrcruz117/chirpy/internal/database"
 
-	// "github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -47,6 +46,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
 	}
+	dbConn.SetMaxOpenConns(100)
+	dbConn.SetMaxIdleConns(100)
 	dbQueries := database.New(dbConn)
 
 	apiCfg := apiConfig{

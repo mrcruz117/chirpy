@@ -116,7 +116,7 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbChirps := []database.Chirp{}
+	var dbChirps []database.Chirp
 	var err error
 
 	if sort == "asc" {
