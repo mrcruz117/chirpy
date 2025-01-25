@@ -9,8 +9,8 @@ import (
 
 	"github.com/mrcruz117/chirpy/internal/database"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
@@ -42,7 +42,7 @@ func main() {
 		log.Fatal("POLKA_KEY must be set")
 	}
 
-	dbConn, err := sql.Open("postgres", dbURL)
+	dbConn, err := sql.Open("pgx", dbURL)
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
 	}
