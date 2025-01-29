@@ -70,6 +70,8 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	cfg.cache.Delete("chirps_list")
+
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID:        chirp.ID.Bytes,
 		CreatedAt: chirp.CreatedAt.Time,
@@ -107,34 +109,25 @@ func getCleanedBody(body string, badWords map[string]struct{}) string {
 }
 
 func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
-	authorID := r.URL.Query().Get("author_id")
-	sort := r.URL.Query().Get("sort")
-
-	if authorID != "" {
-		dbChirps, err := cfg.db.GetChirpsByAuthorID(r.Context(), pgtype.UUID{Bytes: uuid.MustParse(authorID), Valid: true})
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
+	// Check cache first
+	if entry, ok := cfg.cache.Load("chirps_list"); ok {
+		cached := entry.(cacheEntry)
+		if time.Since(cached.timestamp) < cfg.cacheDuration {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(cached.data)
 			return
 		}
-		respondWithJSON(w, http.StatusOK, dbChirps)
-		return
+		// Cache expired, remove it
+		cfg.cache.Delete("chirps_list")
 	}
 
-	var dbChirps []database.Chirp
-	var err error
-
-	if sort == "asc" {
-		dbChirps, err = cfg.db.GetChirpsAsc(r.Context())
-	} else {
-		dbChirps, err = cfg.db.GetChirpsDesc(r.Context())
-	}
-
+	// Get from DB
+	dbChirps, err := cfg.db.GetChirpsDesc(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
 		return
 	}
 
-	// Convert database chirps to response chirps
 	chirps := make([]Chirp, len(dbChirps))
 	for i, dbChirp := range dbChirps {
 		chirps[i] = Chirp{
@@ -146,7 +139,20 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respondWithJSON(w, http.StatusOK, chirps)
+	data, err := json.Marshal(chirps)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't marshal JSON", err)
+		return
+	}
+
+	// Store in cache
+	cfg.cache.Store("chirps_list", cacheEntry{
+		data:      data,
+		timestamp: time.Now(),
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 func (cfg *apiConfig) handlerChirpsGetByID(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,12 +16,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type cacheEntry struct {
+	data      []byte
+	timestamp time.Time
+}
+
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	jwtSecret      string
 	polkaKey       string
 	platform       string
 	db             *database.Queries
+	cache          *sync.Map
+	cacheDuration  time.Duration
 }
 
 func main() {
@@ -50,7 +58,7 @@ func main() {
 	}
 
 	// Optimized pool settings
-	config.MaxConns = 40                       // Match your load test concurrency
+	config.MaxConns = 45                       // Match your load test concurrency
 	config.MinConns = 10                       // Keep warm connections ready
 	config.MaxConnLifetime = 30 * time.Minute  // Prevent stale connections
 	config.MaxConnIdleTime = 15 * time.Minute  // Clean up idle connections
@@ -70,6 +78,8 @@ func main() {
 		platform:       platform,
 		jwtSecret:      jwtSecret,
 		polkaKey:       polkaKey,
+		cache:          &sync.Map{},
+		cacheDuration:  30 * time.Second, // Adjust as needed
 	}
 
 	mux := http.NewServeMux()
