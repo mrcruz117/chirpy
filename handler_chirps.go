@@ -1,17 +1,20 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mrcruz117/chirpy/internal/auth"
 	"github.com/mrcruz117/chirpy/internal/database"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Chirp struct {
 	ID        uuid.UUID `json:"id"`

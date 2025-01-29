@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"sync/atomic"
+	"time"
 
 	"github.com/mrcruz117/chirpy/internal/database"
 
@@ -43,7 +44,19 @@ func main() {
 		log.Fatal("POLKA_KEY must be set")
 	}
 
-	dbPool, err := pgxpool.New(context.Background(), dbURL)
+	config, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Optimized pool settings
+	config.MaxConns = 40                       // Match your load test concurrency
+	config.MinConns = 10                       // Keep warm connections ready
+	config.MaxConnLifetime = 30 * time.Minute  // Prevent stale connections
+	config.MaxConnIdleTime = 15 * time.Minute  // Clean up idle connections
+	config.HealthCheckPeriod = 1 * time.Minute // Quickly detect dead connections
+
+	dbPool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 	}
