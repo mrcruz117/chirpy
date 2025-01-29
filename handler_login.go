@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mrcruz117/chirpy/internal/auth"
 	"github.com/mrcruz117/chirpy/internal/database"
 )
@@ -44,7 +45,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	expiresIn := time.Hour
 
 	// Generate access token
-	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expiresIn)
+	accessToken, err := auth.MakeJWT(user.ID.Bytes, cfg.jwtSecret, expiresIn)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create access token", err)
 		return
@@ -60,8 +61,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	// Store refresh token in database
 	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
 		Token:     refreshToken,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
+		UserID:    pgtype.UUID{Bytes: user.ID.Bytes, Valid: true},
+		ExpiresAt: pgtype.Timestamp{Time: time.Now().Add(60 * 24 * time.Hour), Valid: true},
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't store refresh token", err)
@@ -70,9 +71,9 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID:          user.ID,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+			ID:          user.ID.Bytes,
+			CreatedAt:   user.CreatedAt.Time,
+			UpdatedAt:   user.UpdatedAt.Time,
 			Email:       user.Email,
 			IsChirpyRed: user.IsChirpyRed,
 		},

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mrcruz117/chirpy/internal/auth"
 	"github.com/mrcruz117/chirpy/internal/database"
 )
@@ -54,9 +55,9 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusCreated, response{
 		User: User{
-			ID:          user.ID,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+			ID:          user.ID.Bytes,
+			CreatedAt:   user.CreatedAt.Time,
+			UpdatedAt:   user.UpdatedAt.Time,
 			Email:       user.Email,
 			IsChirpyRed: user.IsChirpyRed,
 		},
@@ -98,7 +99,10 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
-		ID:             userID,
+		ID: pgtype.UUID{
+			Bytes: userID,
+			Valid: true,
+		},
 		Email:          params.Email,
 		HashedPassword: hashedPassword,
 	})
@@ -109,9 +113,9 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID:          user.ID,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+			ID:          user.ID.Bytes,
+			CreatedAt:   user.CreatedAt.Time,
+			UpdatedAt:   user.UpdatedAt.Time,
 			Email:       user.Email,
 			IsChirpyRed: user.IsChirpyRed,
 		},
@@ -156,7 +160,12 @@ func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	_, err = cfg.db.UpgradeUser(r.Context(), userID)
+	userUUID := pgtype.UUID{
+		Bytes: userID,
+		Valid: true,
+	}
+
+	_, err = cfg.db.UpgradeUser(r.Context(), userUUID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "User not found", err)
 		return

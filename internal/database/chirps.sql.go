@@ -8,7 +8,7 @@ package database
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createChirp = `-- name: CreateChirp :one
@@ -25,11 +25,11 @@ RETURNING id, created_at, updated_at, body, user_id
 
 type CreateChirpParams struct {
 	Body   string
-	UserID uuid.UUID
+	UserID pgtype.UUID
 }
 
 func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp, error) {
-	row := q.db.QueryRowContext(ctx, createChirp, arg.Body, arg.UserID)
+	row := q.db.QueryRow(ctx, createChirp, arg.Body, arg.UserID)
 	var i Chirp
 	err := row.Scan(
 		&i.ID,
@@ -45,8 +45,8 @@ const deleteChirp = `-- name: DeleteChirp :exec
 DELETE FROM chirps WHERE id = $1
 `
 
-func (q *Queries) DeleteChirp(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteChirp, id)
+func (q *Queries) DeleteChirp(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteChirp, id)
 	return err
 }
 
@@ -55,8 +55,8 @@ SELECT id, created_at, updated_at, body, user_id FROM chirps
 WHERE id = $1
 `
 
-func (q *Queries) GetChirpByID(ctx context.Context, id uuid.UUID) (Chirp, error) {
-	row := q.db.QueryRowContext(ctx, getChirpByID, id)
+func (q *Queries) GetChirpByID(ctx context.Context, id pgtype.UUID) (Chirp, error) {
+	row := q.db.QueryRow(ctx, getChirpByID, id)
 	var i Chirp
 	err := row.Scan(
 		&i.ID,
@@ -74,7 +74,7 @@ ORDER BY created_at ASC
 `
 
 func (q *Queries) GetChirpsAsc(ctx context.Context) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getChirpsAsc)
+	rows, err := q.db.Query(ctx, getChirpsAsc)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +92,6 @@ func (q *Queries) GetChirpsAsc(ctx context.Context) ([]Chirp, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -108,8 +105,8 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetChirpsByAuthorID(ctx context.Context, userID uuid.UUID) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getChirpsByAuthorID, userID)
+func (q *Queries) GetChirpsByAuthorID(ctx context.Context, userID pgtype.UUID) ([]Chirp, error) {
+	rows, err := q.db.Query(ctx, getChirpsByAuthorID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,9 +124,6 @@ func (q *Queries) GetChirpsByAuthorID(ctx context.Context, userID uuid.UUID) ([]
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -143,7 +137,7 @@ ORDER BY created_at DESC
 `
 
 func (q *Queries) GetChirpsDesc(ctx context.Context) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getChirpsDesc)
+	rows, err := q.db.Query(ctx, getChirpsDesc)
 	if err != nil {
 		return nil, err
 	}
@@ -161,9 +155,6 @@ func (q *Queries) GetChirpsDesc(ctx context.Context) ([]Chirp, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

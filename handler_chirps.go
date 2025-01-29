@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mrcruz117/chirpy/internal/auth"
 	"github.com/mrcruz117/chirpy/internal/database"
 )
@@ -59,7 +60,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned,
-		UserID: userID,
+		UserID: pgtype.UUID{Bytes: userID, Valid: true},
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
@@ -67,11 +68,11 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	}
 
 	respondWithJSON(w, http.StatusCreated, Chirp{
-		ID:        chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
+		ID:        chirp.ID.Bytes,
+		CreatedAt: chirp.CreatedAt.Time,
+		UpdatedAt: chirp.UpdatedAt.Time,
 		Body:      chirp.Body,
-		UserID:    chirp.UserID,
+		UserID:    chirp.UserID.Bytes,
 	})
 }
 
@@ -107,7 +108,7 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 	sort := r.URL.Query().Get("sort")
 
 	if authorID != "" {
-		dbChirps, err := cfg.db.GetChirpsByAuthorID(r.Context(), uuid.MustParse(authorID))
+		dbChirps, err := cfg.db.GetChirpsByAuthorID(r.Context(), pgtype.UUID{Bytes: uuid.MustParse(authorID), Valid: true})
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
 			return
@@ -134,11 +135,11 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 	chirps := make([]Chirp, len(dbChirps))
 	for i, dbChirp := range dbChirps {
 		chirps[i] = Chirp{
-			ID:        dbChirp.ID,
-			CreatedAt: dbChirp.CreatedAt,
-			UpdatedAt: dbChirp.UpdatedAt,
+			ID:        dbChirp.ID.Bytes,
+			CreatedAt: dbChirp.CreatedAt.Time,
+			UpdatedAt: dbChirp.UpdatedAt.Time,
 			Body:      dbChirp.Body,
-			UserID:    dbChirp.UserID,
+			UserID:    dbChirp.UserID.Bytes,
 		}
 	}
 
@@ -152,18 +153,18 @@ func (cfg *apiConfig) handlerChirpsGetByID(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID", err)
 		return
 	}
-	dbChirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), pgtype.UUID{Bytes: chirpID, Valid: true})
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Couldn't get chirp", err)
 		return
 	}
 
 	respondWithJSON(w, http.StatusOK, Chirp{
-		ID:        dbChirp.ID,
-		CreatedAt: dbChirp.CreatedAt,
-		UpdatedAt: dbChirp.UpdatedAt,
+		ID:        dbChirp.ID.Bytes,
+		CreatedAt: dbChirp.CreatedAt.Time,
+		UpdatedAt: dbChirp.UpdatedAt.Time,
 		Body:      dbChirp.Body,
-		UserID:    dbChirp.UserID,
+		UserID:    dbChirp.UserID.Bytes,
 	})
 }
 
@@ -186,17 +187,17 @@ func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dbChirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), pgtype.UUID{Bytes: chirpID, Valid: true})
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Couldn't get chirp", err)
 		return
 	}
-	if dbChirp.UserID != userID {
+	if dbChirp.UserID.Bytes != userID {
 		respondWithError(w, http.StatusForbidden, "You can't delete this chirp", err)
 		return
 	}
 
-	err = cfg.db.DeleteChirp(r.Context(), chirpID)
+	err = cfg.db.DeleteChirp(r.Context(), pgtype.UUID{Bytes: chirpID, Valid: true})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't delete chirp", err)
 		return

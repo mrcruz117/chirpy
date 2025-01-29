@@ -8,7 +8,7 @@ package database
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -29,7 +29,7 @@ type CreateUserParams struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.HashedPassword)
+	row := q.db.QueryRow(ctx, createUser, arg.Email, arg.HashedPassword)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -47,7 +47,7 @@ DELETE FROM users
 `
 
 func (q *Queries) DeleteAllUsers(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, deleteAllUsers)
+	_, err := q.db.Exec(ctx, deleteAllUsers)
 	return err
 }
 
@@ -56,7 +56,7 @@ SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red FROM us
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -79,13 +79,13 @@ RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type UpdateUserParams struct {
-	ID             uuid.UUID
+	ID             pgtype.UUID
 	Email          string
 	HashedPassword string
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUser, arg.ID, arg.Email, arg.HashedPassword)
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Email, arg.HashedPassword)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -107,8 +107,8 @@ WHERE id = $1
 RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
-func (q *Queries) UpgradeUser(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRowContext(ctx, upgradeUser, id)
+func (q *Queries) UpgradeUser(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, upgradeUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -9,7 +8,9 @@ import (
 
 	"github.com/mrcruz117/chirpy/internal/database"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"context"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -42,13 +43,13 @@ func main() {
 		log.Fatal("POLKA_KEY must be set")
 	}
 
-	dbConn, err := sql.Open("pgx", dbURL)
+	dbPool, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
-		log.Fatalf("Error opening database: %s", err)
+		log.Fatalf("Unable to create connection pool: %v\n", err)
 	}
-	dbConn.SetMaxOpenConns(100)
-	dbConn.SetMaxIdleConns(100)
-	dbQueries := database.New(dbConn)
+	defer dbPool.Close()
+
+	dbQueries := database.New(dbPool)
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},

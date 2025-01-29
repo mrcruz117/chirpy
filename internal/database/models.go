@@ -5,33 +5,30 @@
 package database
 
 import (
-	"database/sql"
-	"time"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Chirp struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        pgtype.UUID
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 	Body      string
-	UserID    uuid.UUID
+	UserID    pgtype.UUID
 }
 
 type RefreshToken struct {
 	Token     string
-	UserID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	ExpiresAt time.Time
-	RevokedAt sql.NullTime
+	UserID    pgtype.UUID
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
+	RevokedAt pgtype.Timestamp
 }
 
 type User struct {
-	ID             uuid.UUID
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             pgtype.UUID
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
 	Email          string
 	HashedPassword string
 	IsChirpyRed    bool
